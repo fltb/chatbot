@@ -4,6 +4,8 @@ from melobot import Bot, PluginPlanner
 from melobot.protocols.onebot.v11.handle import on_at_qq
 from melobot.protocols.onebot.v11 import MessageEvent, on_message, GroupMsgChecker, LevelRole, ForwardWebSocketIO, OneBotV11Protocol
 from melobot import send_text
+from melobot.adapter.content import TextContent
+from melobot.adapter.generic import send_refer
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from config import settings
@@ -82,7 +84,7 @@ def register_message_handlers(bot: Bot, user_service: IUserService) -> PluginPla
         text = "".join(m.to_dict()['data']['text'] for m in event.message if m.to_dict()['type'] == 'text').lstrip()
         reply = await user_service.handle_message(user_id, text)
         # 发送回复
-        await send_text(reply)
+        await send_refer(event, [TextContent(reply)])
 
     @on_message()
     async def handle_private(event: MessageEvent) -> None:
