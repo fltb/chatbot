@@ -145,7 +145,7 @@ Send commands via a private message or by @-mentioning the bot in a group chat.
 
 | Command | Alias(es) | Description |
 | :--- | :--- | :--- |
-| `/new` | - | `/new <mode> [args...]` - Creates a new session. Available modes: `pwvn`, `plain` |
+| `/new` | - | 创建新会话。最常用：`/new plain`（普通对话），`/new pwvn <你的角色> <Bot角色>`（角色扮演）。可用模式详见 `/modes`。|
 | `/ls` | - | Lists all of your available sessions. |
 | `/ss` | - | `/ss <session_id>` - Switches to the specified session using the first few chars of its ID. |
 | `/dels`| - | `/dels <session_id>` - Deletes a session. |
@@ -153,7 +153,8 @@ Send commands via a private message or by @-mentioning the bot in a group chat.
 | `/sbr` | - | `/sbr <role_name>` - (pwvn mode only) Switches the bot's character role. |
 | `/sur` | - | `/sur <role_name>` - (pwvn mode only) Switches your user role. |
 | `/sl` | - | `/sl <model_name>` - Switches the LLM for the current session (e.g., `deepseek-chat` or `ollama/qwen2.5`). |
-| `/help`| - | Displays this help message. |
+| `/modes` | - | 查看所有对话模式和参数用法，含示例和角色列表。|
+| `/help`| - | 显示所有指令帮助。 |
 
 ### Admin Commands
 

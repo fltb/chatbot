@@ -25,6 +25,7 @@ ENABLED_GROUP_IDS = [
 # "true" or "false"
 USE_OLLAMA = os.getenv("USE_OLLAMA", "false").lower() == "true"
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # --- Admin ---
 # 管理员 QQ 号列表，注意是整数

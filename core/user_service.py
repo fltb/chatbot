@@ -124,21 +124,29 @@ class UserService(IUserService):
 
         chat = self._get_active_chat(user_id)
         if not chat:
-            # 1) Notify about default mode
-            notice = (f"当前无活动会话。可以使用 /new <模式> 开启。\n可用模式: {', '.join(self._factories.keys())}\n"
-                     "根据默认规则创建会话 （/new pwvn Dave Dean）：")
-            # 2) Call your `/new pwvn Dave Dean`
-            new_output = await self._handle_new_session(user_id, "pwvn Dave Dean")
-            # 3) Fetch the freshly-created chat service
-            chat = self._get_active_chat(user_id)
-            if not chat:
-                # Fallback in case creation failed
-                return f"{notice}\n{new_output}"
-            # 4) Send the original message into the new chat
-            chat_output = chat.get_response(message)
-            # 5) Concatenate and return everything
-            return "\n".join([notice, new_output, chat_output])
+            # Return the message directly if it's a string response
+            if isinstance(chat, str):
+                return chat
+            
+            # Otherwise return the formatted message
+            msg_lines = [
+                "当前无活动会话,你可以使用以下命令开启新会话：",
+                "",
+                "1. 普通对话：",
+                "   /new plain",
+                "   适合日常提问、闲聊。",
+                "",
+                "2. 角色扮演 (Password VN)：",
+                "   /new pwvn <你的角色> <Bot角色>",
+                f"   例如：/new pwvn Dave Dean",
+                f"   Bot 角色可选：{', '.join(self.AVAILABLE_ROLES) if hasattr(self, 'AVAILABLE_ROLES') and self.AVAILABLE_ROLES else '（请先配置角色）'}",
+                "",
+                "输入 /ls 可查看你所有的会话。",
+                "输入 /help 查看全部指令。"
+            ]
+            return "\n".join(msg_lines)
 
+        # Only call get_response if chat is actually a chat service
         return chat.get_response(message)
 
     async def _handle_user_command(self, user_id: int, message: str) -> str:
@@ -169,8 +177,24 @@ class UserService(IUserService):
 
     async def _handle_new_session(self, user_id: int, args: str, **kwargs) -> str:
         parts = args.split()
-        if not parts:
-            return f"用法: /new <模式> [参数...].\n可用模式: {', '.join(self._factories.keys())}"
+        if not parts or (len(parts) == 1 and parts[0] in ('?', 'help')):
+            # 直观中文模式说明
+            msg_lines = [
+                "欢迎使用多模式对话。你可以使用以下命令开启新会话：",
+                "",
+                "1. 普通对话：",
+                "   /new plain",
+                "   适合日常提问、闲聊。",
+                "",
+                "2. 角色扮演 (Password VN)：",
+                "   /new pwvn <你的角色> <Bot角色>",
+                f"   例如：/new pwvn Dave Dean",
+                f"   Bot 角色可选：{', '.join(self.AVAILABLE_ROLES) if hasattr(self, 'AVAILABLE_ROLES') and self.AVAILABLE_ROLES else '（请先配置角色）'}",
+                "",
+                "输入 /ls 可查看你所有的会话。",
+                "输入 /help 查看全部指令。"
+            ]
+            return "\n".join(msg_lines)
         
         mode = parts[0]
         mode_args = parts[1:]
@@ -181,7 +205,13 @@ class UserService(IUserService):
         session_info = None
         if mode == 'pwvn':
             if len(mode_args) < 2:
-                return f"用法: /new pwvn <你的角色> <Bot角色>， 你的角色任意，Bot 角色可选：{",".join(self.AVAILABLE_ROLES)}"
+                msg_lines = [
+                    "角色扮演模式需指定你的角色和 Bot 角色。",
+                    "用法：/new pwvn <你的角色> <Bot角色>",
+                    f"Bot 角色可选：{', '.join(self.AVAILABLE_ROLES) if hasattr(self, 'AVAILABLE_ROLES') and self.AVAILABLE_ROLES else '（请先配置角色）'}",
+                    "例如：/new pwvn Dave Dean"
+                ]
+                return "\n".join(msg_lines)
             user_role, bot_role = mode_args[0], mode_args[1]
             try:
                 self._validate_role(bot_role)
@@ -287,8 +317,23 @@ class UserService(IUserService):
         
         chat = self._get_active_chat(user_id)
         if not chat:
-            return "没有活动的会话以切换LLM。"
-        
+            msg_lines = [
+                "当前无活动会话,你可以使用以下命令开启新会话：",
+                "",
+                "1. 普通对话：",
+                "   /new plain",
+                "   适合日常提问、闲聊。",
+                "",
+                "2. 角色扮演 (Password VN)：",
+                "   /new pwvn <你的角色> <Bot角色>",
+                f"   例如：/new pwvn Dave Dean",
+                f"   Bot 角色可选：{', '.join(self.AVAILABLE_ROLES) if hasattr(self, 'AVAILABLE_ROLES') and self.AVAILABLE_ROLES else '（请先配置角色）'}",
+                "",
+                "输入 /ls 可查看你所有的会话。",
+                "输入 /help 查看全部指令。"
+            ]
+            return "\n".join(msg_lines)
+
         try:
             new_llm = get_llm_by_name(model_name)
             chat.switch_llm(new_llm) # 直接在活动的 ChatService 实例上操作
@@ -314,7 +359,10 @@ class UserService(IUserService):
             del self._active_chats[session_id]
             logging.info(f"Invalidated cached chat service for session {session_id}")
 
-    def _get_active_chat(self, user_id: int) -> Optional[IChatService]:
+    def _get_active_chat(self, user_id: int):
+        """
+        获取当前活跃的会话服务，如果不存在则提示用户使用/new创建新会话
+        """
         session_info = self._get_active_session_info(user_id)
         if not session_info:
             return None

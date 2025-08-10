@@ -10,6 +10,7 @@ from typing import Any
 from llama_index.core import Settings
 from llama_index.llms.deepseek import DeepSeek
 from llama_index.llms.ollama import Ollama
+from llama_index.llms.gemini import Gemini
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
 from config import settings
@@ -48,10 +49,18 @@ def get_llm_by_name(model_name: str) -> Any:
         # 假设 Ollama 服务正在本地运行
         return Ollama(model=ollama_model_name)
     
+    elif model_name.startswith("gemini-"):
+        api_key = settings.GEMINI_API_KEY
+        if not api_key:
+            logging.error("GEMINI_API_KEY not found in environment variables.")
+            raise ValueError("Gemini API key not found in environment variables.")
+        # 允许用户以 gemini-pro, gemini-1.5-pro-001 等方式指定模型
+        return Gemini(model=model_name, api_key=api_key)
+    
     else:
         # 如果未来支持更多模型，可以在这里添加 elif 分支
         logging.error(f"Unsupported model prefix for: '{model_name}'")
-        raise ValueError(f"Unsupported model: '{model_name}'. Supported prefixes: 'deepseek-', 'ollama/'")
+        raise ValueError(f"Unsupported model: '{model_name}'. Supported prefixes: 'deepseek-', 'ollama/', 'gemini-' ")
 
 
 def initialize_global_llm() -> None:
@@ -66,8 +75,13 @@ def initialize_global_llm() -> None:
         RuntimeError: 如果在初始化过程中发生严重错误（如配置缺失）。
     """
     try:
-        # 根据配置决定默认使用的模型名称
-        default_model = "ollama/qwen2.5" if settings.USE_OLLAMA else "deepseek-chat"
+        # 优先级：Ollama > Gemini > DeepSeek
+        if settings.USE_OLLAMA:
+            default_model = "ollama/qwen2.5"
+        elif settings.GEMINI_API_KEY:
+            default_model = "gemini-2.5-flash"
+        else:
+            default_model = "deepseek-chat"
         
         logging.info(f"Initializing global default LLM with: '{default_model}'")
         
